@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Online Shop</title>
+    <style>
+        /* Basic styles */
+        .item {
+          margin-bottom: 20px;
+          border: 1px solid #ccc;
+          padding: 20px;
+          display: flex; /* Arrange elements horizontally */
+          align-items: center; /* Vertically align content */
+        }
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+        }
+        h1 {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+    
+        /* Image styling */
+        .item img {
+          width: 100px;
+          margin-right: 20px;
+        }
+    
+        /* Label and content styling */
+        .item label {
+          font-weight: bold;
+          margin-right: 10px;
+          width: 120px; /* Fixed width for labels */
+        }
+        .item .name,
+        .item .price {
+          flex: 1; /* Allow content to fill remaining space */
+        }
+        .item .price {
+          color: #888;
+        }
+    
+        /* Quantity input styling */
+        .item input[type="number"] {
+          width: 50px;
+        }
+    
+        /* Button styling */
+        .item button {
+          padding: 8px 16px;
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          cursor: pointer;
+        }
+        .item button:hover {
+          background-color: #45a049;
+        }
+        .item button:focus {
+          outline: none;
+        }
+        .item button:active {
+          background-color: #3e8e41;
+        }
+      </style>
+    <script>
+        // JSON array of products
+        var products = [
+        {
+        "name": "rice",
+        "price": "100",
+        "image": "{{ url_for('static', filename='images/rice.jpg') }}"
+        },
+        {
+        "name": "cola",
+        "price": "19.99",
+        "image": "{{ url_for('static', filename='images/cola.jpg') }}"
+         },
+        {
+        "name": "chocolate",
+        "price": "8.99",
+        "image": "{{ url_for('static', filename='images/choco.jpg') }}"
+        }
+    ];
+
+        // Function to handle adding an item to the cart
+        function addToCart(productIndex, quantity) {
+            var product = products[productIndex];
+            var name = product.name;
+            var price = product.price;
+            var image = product.image;
+
+
+            // Open IndexedDB database
+            var request = indexedDB.open('online_shop', 1);
+
+            request.onerror = function(event) {
+                console.log('Database error:', event.target.errorCode);
+            };
+
+            request.onupgradeneeded = function(event) {
+                var db = event.target.result;
+
+                // Create object store
+                var objectStore = db.createObjectStore('cart_items', { keyPath: 'id', autoIncrement: true });
+                objectStore.createIndex('image', 'image', { unique: false });
+                objectStore.createIndex('name', 'name', { unique: false });
+                objectStore.createIndex('price', 'price', { unique: false });
+                objectStore.createIndex('quantity', 'quantity', { unique: false });
+            };
+
+            request.onsuccess = function(event) {
+                var db = event.target.result;
+
+                // Add item to object store
+                var transaction = db.transaction(['cart_items'], 'readwrite');
+                var objectStore = transaction.objectStore('cart_items');
+                var item = { name: name, price: price, quantity: quantity };
+                var request = objectStore.add(item);
+
+                request.onsuccess = function(event) {
+                    console.log('Item added to cart.');
+                };
+
+                transaction.oncomplete = function(event) {
+                    db.close();
+                };
+            };
+        }
+        // Function to handle adding an item to the cart
+        function addToCart2() {
+            var productName = document.getElementById('product-name').value;
+            var productPrice = document.getElementById('product-price').value;
+            var quantity = document.getElementById('quantity').value;
+
+            // Open IndexedDB database
+            var request = indexedDB.open('online_shop', 1);
+
+            request.onerror = function(event) {
+                console.log('Database error:', event.target.errorCode);
+            };
+
+            request.onupgradeneeded = function(event) {
+                var db = event.target.result;
+
+                // Create object store
+                var objectStore = db.createObjectStore('cart_items', { keyPath: 'id', autoIncrement: true });
+                objectStore.createIndex('name', 'name', { unique: false });
+                objectStore.createIndex('price', 'price', { unique: false });
+                objectStore.createIndex('quantity', 'quantity', { unique: false });
+            };
+
+            request.onsuccess = function(event) {
+                var db = event.target.result;
+
+                // Add item to object store
+                var transaction = db.transaction(['cart_items'], 'readwrite');
+                var objectStore = transaction.objectStore('cart_items');
+                var item = { name: productName, price: productPrice, quantity: quantity };
+                var request = objectStore.add(item);
+
+                request.onsuccess = function(event) {
+                    console.log('Item added to cart.');
+                };
+
+                transaction.oncomplete = function(event) {
+                    db.close();
+                };
+            };
+        }
+    </script>
+</head>
+<body>
+    <h1>puchase from supplier</h1>
+    
+    <!-- Generate product items dynamically -->
+    <script>
+        for (var i = 0; i < products.length; i++) {
+            var product = products[i];
+            var productName = product.name;
+            var productPrice = product.price;
+            var productImage = product.image || ""; // Handle missing image
+
+
+            document.write(`
+            <div class="item">
+                <img src="${productImage}" alt="${productName}">
+                <label for="name">Product Name:</label>
+                <span class="name">${productName}</span><br>
+                
+                <label for="price">Product Price:</label>
+                <span class="price">${productPrice}</span><br>
+                
+                <label for="quantity">Quantity:</label>
+                <input type="number" class="quantity" value="1"><br>
+                
+                <button onclick="addToCart(${i}, document.querySelector('.quantity').value)">Add to Cart</button>
+            </div>
+            `);
+        }
+    </script>
+    <div class="item">
+      <label for="name">Product Name:</label>
+      <input type="text" id="product-name"><br>
+      
+      <label for="price">Product Price:</label>
+      <input type="text" id="product-price"><br>
+      
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" value="1"><br>
+      
+      <button onclick="addToCart2()">Add to Cart</button>
+  </div>
+</body>
+</html>

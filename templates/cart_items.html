@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>shopping history from the customers</title>
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+        }
+    
+        table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+    
+        th, td {
+          padding: 8px;
+          border: 1px solid #ddd;
+        }
+    
+        th {
+          text-align: left;
+          background-color: #f2f2f2;
+        }
+    
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+    
+        .image-cell {
+          width: 80px;
+          text-align: center;
+        }
+    
+        .image-cell img {
+          max-width: 10%;
+          height: auto;
+        }
+    
+        .delete-button {
+          padding: 5px 10px;
+          background-color: #e74c3c;
+          color: white;
+          border: none;
+          cursor: pointer;
+        }
+    
+        .delete-button:hover {
+          background-color: #c0392b;
+        }
+      </style>
+    <script>
+        // Function to retrieve cart items from IndexedDB and display them
+        function displayCartItems() {
+            // Open IndexedDB database
+            var request = indexedDB.open('online_shop', 1);
+
+            request.onerror = function(event) {
+                console.log('Database error:', event.target.errorCode);
+            };
+
+            request.onsuccess = function(event) {
+                var db = event.target.result;
+
+                // Retrieve cart items
+                var transaction = db.transaction(['cart_items'], 'readonly');
+                var objectStore = transaction.objectStore('cart_items');
+                var request = objectStore.getAll();
+
+                request.onsuccess = function(event) {
+                    var cartItems = event.target.result;
+                    var tableBody = document.getElementById('cart-items');
+
+                    // Clear table body
+                    tableBody.innerHTML = '';
+
+                    // Add cart items to table
+                    cartItems.forEach(function(item) {
+                        var row = tableBody.insertRow();
+
+                        var idCell = row.insertCell();
+                        idCell.textContent = item.id;
+
+                        var nameCell = row.insertCell();
+                        nameCell.textContent = item.name;
+
+                        var priceCell = row.insertCell();
+                        priceCell.textContent = item.price;
+
+                        var quantityCell = row.insertCell();
+                        quantityCell.textContent = item.quantity;
+
+                        var deleteCell = row.insertCell();
+                        var deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.addEventListener('click', function() {
+                            deleteCartItem(item.id);
+                        });
+                        deleteCell.appendChild(deleteButton);
+                    });
+
+                    // Calculate and display the total price
+                    calculateTotal(cartItems);
+                };
+
+                transaction.oncomplete = function(event) {
+                    db.close();
+                };
+            };
+        }
+
+        // Function to delete a specific cart item by ID
+        function deleteCartItem(itemId) {
+            // Open IndexedDB database
+            var request = indexedDB.open('online_shop', 1);
+
+            request.onerror = function(event) {
+                console.log('Database error:', event.target.errorCode);
+            };
+
+            request.onsuccess = function(event) {
+                var db = event.target.result;
+
+                // Delete item from object store
+                var transaction = db.transaction(['cart_items'], 'readwrite');
+                var objectStore = transaction.objectStore('cart_items');
+                var request = objectStore.delete(itemId);
+
+                request.onsuccess = function(event) {
+                    console.log('Item deleted from cart.');
+
+                    // Refresh the cart items and total price after deletion
+                    displayCartItems();
+                };
+
+                transaction.oncomplete = function(event) {
+                    db.close();
+                };
+            };
+        }
+
+        // Function to calculate and display the total price
+        function calculateTotal(cartItems) {
+            var total = 0;
+
+            cartItems.forEach(function(item) {
+                var price = parseFloat(item.price);
+                var quantity = parseInt(item.quantity);
+                total += price * quantity;
+            });
+
+            var totalRow = document.getElementById('total-row');
+
+            // Remove the existing total price row, if it exists
+            if (totalRow.cells.length > 0) {
+                totalRow.innerHTML = '';
+            }
+
+            var totalCell = totalRow.insertCell();
+            totalCell.textContent = 'Total Price:';
+
+            var totalValueCell = totalRow.insertCell();
+            totalValueCell.textContent = total.toFixed(2);
+        }
+
+        // Call the displayCartItems function when the page loads
+        window.onload = displayCartItems;
+    </script>
+</head>
+<body>
+    <h1>Order from HKTVmall</h1>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Actions</th>
+        </tr>
+
+        <tbody id="cart-items"></tbody>
+
+        <tr id="total-row"></tr> <!-- Row to display the total price -->
+    </table>
+</body>
+</html>
